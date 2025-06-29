@@ -41,6 +41,9 @@ const houseImageFiles = [
   "Mutelli.webp",
   "Novebruns.webp",
   "Richese.webp",
+  "Sor.webp",
+  "Spinette.webp",
+  "Taligari.webp",
   "Thorvald.webp",
   "Tseida.webp",
   "Varota.webp",
@@ -87,7 +90,7 @@ function App() {
       id: "fwdbase",
       label: "Fwd Base",
       color: "text-yellow-400",
-      restrictedRows: ["A"],
+      restrictedRows: ["A", "B", "C", "D", "E"],
     },
   ]);
 
@@ -507,11 +510,6 @@ function App() {
                 <span className={`${option.color} font-medium text-sm`}>
                   {option.label}
                 </span>
-                {option.restrictedRows && (
-                  <span className="text-xs bg-gray-600 px-2 py-1 rounded text-gray-300">
-                    {option.restrictedRows.join(",")}
-                  </span>
-                )}
               </div>
             ))}
           </div>

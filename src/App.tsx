@@ -1,14 +1,7 @@
-import React, { useState, useEffect } from "react";
-import {
-  X,
-  Plus,
-  Settings,
-  RotateCcw,
-  Home,
-  Download,
-  Eye,
-} from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Plus, Settings, RotateCcw, Home } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
+import Navbar, { Footer } from "./Navbar";
 
 interface DropdownOption {
   id: string;
@@ -69,7 +62,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-function App() {
+function App({ viewOnly = false }: { viewOnly?: boolean }) {
   // House options from images
   const [houseOptions] = useState<HouseOption[]>(getHouseOptionsFromImages());
 
@@ -102,16 +95,16 @@ function App() {
   // Modal states
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [newOptionLabel, setNewOptionLabel] = useState("");
   const [showHouseDropdown, setShowHouseDropdown] = useState(false);
   const [selectedHouse, setSelectedHouse] = useState<string>("");
-  const [isViewOnly, setIsViewOnly] = useState(false);
+  const [isViewOnly] = useState(viewOnly);
   const [nextStormDate, setNextStormDate] = useState<Date | null>(
     new Date("2025-06-30T19:00:00+08:00")
   );
   const [timeRemaining, setTimeRemaining] = useState<string>("");
   const [mapId, setMapId] = useState<string | null>(null);
+  const [deletedCells, setDeletedCells] = useState<string[]>([]);
 
   const rows = ["I", "H", "G", "F", "E", "D", "C", "B", "A"];
   const cols = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -152,6 +145,7 @@ function App() {
     const newGridData = new Map(gridData);
     if (newSelections.length === 0) {
       newGridData.delete(cellId);
+      setDeletedCells((prev) => [...prev, cellId]);
     } else {
       newGridData.set(cellId, newSelections);
     }
@@ -226,7 +220,9 @@ function App() {
         let icon: string | undefined = undefined;
         if (sel.houseId && option.id === "house") {
           const house = houseOptions.find((h) => h.id === sel.houseId);
-          displayLabel = house ? house.name : option.label;
+          displayLabel = house
+            ? house.name.replace(/^House\s+/, "")
+            : option.label;
           icon = house?.icon;
         }
 
@@ -286,16 +282,6 @@ function App() {
         opt.id === optionId ? { ...opt, restrictedRows: newRows } : opt
       )
     );
-  };
-
-  const exportToViewOnly = () => {
-    setIsViewOnly(true);
-    setIsExportModalOpen(true);
-  };
-
-  const exitViewOnly = () => {
-    setIsViewOnly(false);
-    setIsExportModalOpen(false);
   };
 
   useEffect(() => {
@@ -404,6 +390,15 @@ function App() {
           .from("grid_cells")
           .upsert(cells, { onConflict: "map_id,cell_id" });
       }
+      // Delete removed cells
+      if (deletedCells.length > 0) {
+        await supabase
+          .from("grid_cells")
+          .delete()
+          .in("cell_id", deletedCells)
+          .eq("map_id", mapId);
+        setDeletedCells([]);
+      }
 
       // 2. Save dropdown_options
       const options = dropdownOptions.map((opt) => ({
@@ -436,10 +431,172 @@ function App() {
       }
     };
     saveToSupabase();
-  }, [gridData, dropdownOptions, nextStormDate, mapId]);
+  }, [gridData, dropdownOptions, nextStormDate, mapId, deletedCells]);
+
+  // Remove all controls and modals in view-only mode
+  if (isViewOnly) {
+    return (
+      <div className="min-h-screen bg-black text-white p-4 md:p-8">
+        <Navbar />
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl md:text-5xl font-bold mb-2 text-orange-400 tracking-wide">
+              DUNE AWAKENING
+            </h1>
+            <h2 className="text-xl md:text-2xl font-semibold text-orange-300 mb-4">
+              Deep Desert Map
+            </h2>
+            <p className="text-sm text-gray-400 mb-6">
+              Created by{" "}
+              <a
+                href="https://github.com/StevenLiew"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline text-orange-400 hover:text-orange-300"
+              >
+                Steven Liew (Gwen)
+              </a>
+            </p>
+          </div>
+
+          {/* Countdown Timer Section */}
+          <div className="text-center mb-8">
+            <h3 className="text-2xl font-bold text-red-600">
+              Next Coriolis Storm
+            </h3>
+            <p className="text-lg">{timeRemaining}</p>
+          </div>
+
+          {/* Legend */}
+          <div className="bg-gray-900 border border-gray-700 p-6 rounded-xl mb-8 shadow-2xl">
+            <h3 className="text-2xl font-bold mb-4 text-center text-orange-300">
+              Legend
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {dropdownOptions
+                .filter((option) => option.id !== "house")
+                .map((option) => (
+                  <div
+                    key={option.id}
+                    className="flex items-center gap-3 bg-gray-800 p-3 rounded-lg"
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full ${getColorClass(
+                        option.color
+                      )} shadow-lg`}
+                    ></div>
+                    <span className={`${option.color} font-medium text-sm`}>
+                      {option.label}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
+
+          {/* Grid Container */}
+          <div className="bg-gray-900 p-6 rounded-xl shadow-2xl border border-gray-700 overflow-hidden">
+            <div className="w-full">
+              <div className="min-w-[600px]">
+                {/* Top axis labels */}
+                <div className="grid grid-cols-11 gap-1 mb-3">
+                  <div></div>
+                  {cols.map((col) => (
+                    <div key={col} className="text-center font-bold text-lg">
+                      <span className="text-orange-300">{col}</span>
+                    </div>
+                  ))}
+                  <div></div>
+                </div>
+
+                {/* Grid with side labels */}
+                {rows.map((row) => (
+                  <div key={row} className="grid grid-cols-11 gap-1 mb-1">
+                    {/* Left axis label */}
+                    <div className="flex items-center justify-center font-bold text-lg text-orange-300">
+                      {row}
+                    </div>
+
+                    {/* Grid cells */}
+                    {cols.map((col) => {
+                      const cellSelections = getCellSelections(row, col);
+                      return (
+                        <div
+                          key={`${row}-${col}`}
+                          className={`aspect-square bg-gray-800 border-2 border-gray-600 transition-all duration-300 flex flex-col items-center justify-center p-2 min-h-[70px] rounded-lg`}
+                        >
+                          <div
+                            className={`text-xs font-semibold mb-2 text-gray-400 transition-colors`}
+                          ></div>
+                          {cellSelections.length > 0 && (
+                            <div className="flex flex-wrap gap-1 justify-center items-center h-full w-full min-h-[32px] min-w-[32px]">
+                              {cellSelections.map((selection, index) =>
+                                selection &&
+                                selection.icon &&
+                                selection.houseId ? (
+                                  <img
+                                    key={`${selection.id}-${
+                                      selection.houseId || ""
+                                    }-${index}`}
+                                    src={selection.icon}
+                                    alt={selection.displayLabel}
+                                    title={selection.displayLabel}
+                                    className="w-6 h-6 rounded-full border border-gray-600 shadow-md bg-black object-contain"
+                                  />
+                                ) : selection ? (
+                                  <div
+                                    key={`${selection.id}-${
+                                      selection.houseId || ""
+                                    }-${index}`}
+                                    className={`w-3 h-3 rounded-full ${getColorClass(
+                                      selection.color
+                                    )} shadow-md border border-gray-600 flex items-center justify-center`}
+                                    title={selection.displayLabel}
+                                  ></div>
+                                ) : null
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {/* Right axis label */}
+                    <div className="flex items-center justify-center font-bold text-lg text-orange-300">
+                      {row}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Bottom axis labels */}
+                <div className="grid grid-cols-11 gap-1 mt-3">
+                  <div></div>
+                  {cols.map((col) => (
+                    <div key={col} className="text-center font-bold text-lg">
+                      <span
+                        className={
+                          col === 2 || col === 5 || col === 8
+                            ? "border-b-4 border-pink-500 pb-1 px-2 text-orange-300"
+                            : "text-orange-300"
+                        }
+                      >
+                        {col}
+                      </span>
+                    </div>
+                  ))}
+                  <div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white p-4 md:p-8">
+      <Navbar />
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-5xl font-bold mb-2 text-orange-400 tracking-wide">
@@ -449,7 +606,15 @@ function App() {
             Deep Desert Map
           </h2>
           <p className="text-sm text-gray-400 mb-6">
-            Created by Steven Liew (Gwen)
+            Created by{" "}
+            <a
+              href="https://github.com/StevenLiew"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline text-orange-400 hover:text-orange-300"
+            >
+              Steven Liew (Gwen)
+            </a>
           </p>
 
           {/* Control Buttons */}
@@ -462,24 +627,7 @@ function App() {
                 <Settings size={20} />
                 Manage Options
               </button>
-              <button
-                onClick={exportToViewOnly}
-                className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 flex items-center gap-2 shadow-lg"
-              >
-                <Eye size={20} />
-                Export View
-              </button>
             </div>
-          )}
-
-          {isViewOnly && (
-            <button
-              onClick={exitViewOnly}
-              className="bg-gray-600 hover:bg-gray-700 px-6 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 flex items-center gap-2 shadow-lg"
-            >
-              <X size={20} />
-              Exit View Mode
-            </button>
           )}
         </div>
 
@@ -497,27 +645,29 @@ function App() {
             Legend
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-            {dropdownOptions.map((option) => (
-              <div
-                key={option.id}
-                className="flex items-center gap-3 bg-gray-800 p-3 rounded-lg"
-              >
+            {dropdownOptions
+              .filter((option) => option.id !== "house")
+              .map((option) => (
                 <div
-                  className={`w-4 h-4 rounded-full ${getColorClass(
-                    option.color
-                  )} shadow-lg`}
-                ></div>
-                <span className={`${option.color} font-medium text-sm`}>
-                  {option.label}
-                </span>
-              </div>
-            ))}
+                  key={option.id}
+                  className="flex items-center gap-3 bg-gray-800 p-3 rounded-lg"
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full ${getColorClass(
+                      option.color
+                    )} shadow-lg`}
+                  ></div>
+                  <span className={`${option.color} font-medium text-sm`}>
+                    {option.label}
+                  </span>
+                </div>
+              ))}
           </div>
         </div>
 
         {/* Grid Container */}
-        <div className="bg-gray-900 p-6 rounded-xl shadow-2xl border border-gray-700">
-          <div className="overflow-x-auto">
+        <div className="bg-gray-900 p-6 rounded-xl shadow-2xl border border-gray-700 overflow-hidden">
+          <div className="w-full">
             <div className="min-w-[600px]">
               {/* Top axis labels */}
               <div className="grid grid-cols-11 gap-1 mb-3">
@@ -563,7 +713,9 @@ function App() {
                               selection.icon &&
                               selection.houseId ? (
                                 <img
-                                  key={`${selection.id}-${selection.houseId}-${index}`}
+                                  key={`${selection.id}-${
+                                    selection.houseId || ""
+                                  }-${index}`}
                                   src={selection.icon}
                                   alt={selection.displayLabel}
                                   title={selection.displayLabel}
@@ -653,11 +805,7 @@ function App() {
                         className="w-full flex items-center gap-3 hover:bg-gray-800 p-3 rounded-lg transition-all duration-200 border border-transparent hover:border-gray-600"
                       >
                         <Home size={20} className={option.color} />
-                        <div
-                          className={`w-4 h-4 rounded-full ${getColorClass(
-                            option.color
-                          )} shadow-md`}
-                        ></div>
+                        <div className="w-4 h-4 rounded-full bg-orange-400 shadow-md"></div>
                         <span className={`${option.color} font-medium text-lg`}>
                           {option.label}
                         </span>
@@ -734,11 +882,7 @@ function App() {
                         }
                         className="w-5 h-5 rounded accent-orange-500"
                       />
-                      <img
-                        src={house.icon}
-                        alt={house.name}
-                        className="w-6 h-6 rounded-full border border-gray-600 bg-black"
-                      />
+                      <div className="w-4 h-4 rounded-full bg-orange-400 shadow-md"></div>
                       <span className="text-orange-400 font-medium text-lg">
                         {house.name}
                       </span>
@@ -955,41 +1099,7 @@ function App() {
           </div>
         </div>
       )}
-
-      {/* Export View Modal */}
-      {isExportModalOpen && isViewOnly && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 p-6 rounded-xl max-w-4xl w-full border border-gray-700 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold text-orange-300">
-                Export View - Read Only
-              </h3>
-              <button
-                onClick={exitViewOnly}
-                className="text-gray-400 hover:text-white transition-colors p-1"
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            <div className="text-center mb-4">
-              <p className="text-gray-300">
-                This is the public view of your map. Share this view with others
-                who should only see the data without editing capabilities.
-              </p>
-            </div>
-
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={exitViewOnly}
-                className="bg-orange-600 hover:bg-orange-700 px-6 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105"
-              >
-                Return to Edit Mode
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Footer />
     </div>
   );
 }

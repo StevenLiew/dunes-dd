@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { X, Plus, Settings, RotateCcw, Home } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
-import Navbar, { Footer } from "./Navbar";
+import Navbar from "./Navbar";
+import Footer from "./Footer";
 
 interface DropdownOption {
   id: string;

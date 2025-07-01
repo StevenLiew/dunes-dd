@@ -3,12 +3,16 @@ import Navbar, { Footer } from "./Navbar";
 
 const changelog = [
   {
+    version: "v0.4",
+    changes: ["Added Reset Map feature"],
+  },
+  {
     version: "v0.3",
     changes: [
-      "Added Changelog",
+      "Added Changelog page",
       "Added Management page",
-      "Added top navbar",
-      'Root page is "View-only"',
+      "Added navigation bar",
+      'Default page now shows map in "View Only" mode',
       "Removed scrollbars from grid",
     ],
   },

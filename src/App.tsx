@@ -197,7 +197,7 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
     setGridData(newGridData);
   };
 
-  const resetMap = () => {
+  const resetMap = async () => {
     if (
       confirm(
         "Are you sure you want to reset the entire map? This action cannot be undone."
@@ -205,6 +205,9 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
     ) {
       setGridData(new Map());
       setIsManageModalOpen(false);
+      if (mapId) {
+        await supabase.from("grid_cells").delete().eq("map_id", mapId);
+      }
     }
   };
 

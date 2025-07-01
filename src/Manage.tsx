@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import App from "./App";
-import { Footer } from "./Navbar";
+import Footer from "./Footer";
 
 const SITE_PASSWORD = import.meta.env.VITE_SITE_PASSWORD;
 

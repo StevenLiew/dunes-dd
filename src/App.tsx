@@ -100,12 +100,11 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
   const [showHouseDropdown, setShowHouseDropdown] = useState(false);
   const [selectedHouse, setSelectedHouse] = useState<string>("");
   const [isViewOnly] = useState(viewOnly);
-  const [nextStormDate, setNextStormDate] = useState<Date | null>(
-    new Date("2025-06-30T19:00:00+08:00")
-  );
+  const [nextStormDate, setNextStormDate] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<string>("");
   const [mapId, setMapId] = useState<string | null>(null);
   const [deletedCells, setDeletedCells] = useState<string[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const rows = ["I", "H", "G", "F", "E", "D", "C", "B", "A"];
   const cols = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -318,6 +317,35 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
       setNextStormDate(newDate);
     }
   };
+
+  const saveStormDate = async (date: Date) => {
+    setIsSaving(true);
+    setNextStormDate(date);
+    if (mapId) {
+      await supabase.from("settings").upsert(
+        [
+          {
+            map_id: mapId,
+            next_storm_date: date.toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ],
+        { onConflict: "map_id" }
+      );
+    }
+    setIsSaving(false);
+  };
+
+  function toLocalDatetimeInputValue(date: Date) {
+    if (!date) return "";
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
 
   // Load from Supabase on mount
   useEffect(() => {
@@ -1087,7 +1115,10 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
               </h4>
               <input
                 type="datetime-local"
-                onChange={(e) => addNextStormDate(e.target.value)}
+                value={
+                  nextStormDate ? toLocalDatetimeInputValue(nextStormDate) : ""
+                }
+                onChange={(e) => saveStormDate(new Date(e.target.value))}
                 className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 focus:border-orange-500 focus:outline-none transition-colors"
               />
             </div>
@@ -1096,8 +1127,9 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
               <button
                 onClick={() => setIsManageModalOpen(false)}
                 className="bg-orange-600 hover:bg-orange-700 px-6 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105"
+                disabled={isSaving}
               >
-                Done
+                {isSaving ? "Saving..." : "Done"}
               </button>
             </div>
           </div>

@@ -4,6 +4,12 @@ import Footer from "./Footer";
 
 const changelog = [
   {
+    version: "v0.5",
+    changes: [
+      "Fixed Coriolis Storm value not being saved (and hence displayed) correctly.",
+    ],
+  },
+  {
     version: "v0.4",
     changes: ["Added Reset Map feature"],
   },

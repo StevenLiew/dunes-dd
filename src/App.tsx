@@ -105,7 +105,6 @@ function App({
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [newOptionLabel, setNewOptionLabel] = useState("");
   const [showHouseDropdown, setShowHouseDropdown] = useState(false);
-  const [selectedHouse, setSelectedHouse] = useState<string>("");
   const [isViewOnly] = useState(viewOnly);
   const [nextStormDate, setNextStormDate] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<string>("");
@@ -127,7 +126,6 @@ function App({
     const cellId = `${row}-${col}`;
     setSelectedCell(cellId);
     setShowHouseDropdown(false);
-    setSelectedHouse("");
   };
 
   const handleOptionSelect = (
@@ -162,7 +160,6 @@ function App({
   const handleHouseSelection = (cellId: string, houseId: string) => {
     handleOptionSelect(cellId, "house", houseId);
     setShowHouseDropdown(false);
-    setSelectedHouse("");
   };
 
   const addNewOption = () => {
@@ -835,7 +832,6 @@ function App({
                 onClick={() => {
                   setSelectedCell(null);
                   setShowHouseDropdown(false);
-                  setSelectedHouse("");
                 }}
                 className="text-gray-400 hover:text-white transition-colors p-1"
               >
@@ -951,7 +947,6 @@ function App({
                 onClick={() => {
                   setSelectedCell(null);
                   setShowHouseDropdown(false);
-                  setSelectedHouse("");
                 }}
                 className="bg-orange-600 hover:bg-orange-700 px-6 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105"
               >

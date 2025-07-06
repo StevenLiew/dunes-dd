@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import App from "./App";
 import Footer from "./Footer";
 import { createClient } from "@supabase/supabase-js";
-import Navbar from "./Navbar"; // Import Navbar
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -49,11 +48,6 @@ export default function Manage({
     } else {
       setIsAuthed(true);
     }
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setIsAuthed(false);
   };
 
   if (!isAuthed) {

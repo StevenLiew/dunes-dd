@@ -63,7 +63,15 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-function App({ viewOnly = false }: { viewOnly?: boolean }) {
+function App({
+  viewOnly = false,
+  isAuthed,
+  setIsAuthed,
+}: {
+  viewOnly?: boolean;
+  isAuthed: boolean;
+  setIsAuthed: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
   // House options from images
   const [houseOptions] = useState<HouseOption[]>(getHouseOptionsFromImages());
 
@@ -311,13 +319,6 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
     return () => clearInterval(interval);
   }, [nextStormDate]);
 
-  const addNextStormDate = (dateString: string) => {
-    const newDate = new Date(dateString);
-    if (!isNaN(newDate.getTime())) {
-      setNextStormDate(newDate);
-    }
-  };
-
   const saveStormDate = async (date: Date) => {
     setIsSaving(true);
     setNextStormDate(date);
@@ -465,11 +466,32 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
     saveToSupabase();
   }, [gridData, dropdownOptions, nextStormDate, mapId, deletedCells]);
 
+  // Check Supabase session on mount to set isAuthed
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setIsAuthed(true);
+      else setIsAuthed(false);
+    });
+    // Listen for auth changes
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthed(!!session);
+    });
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, [setIsAuthed]);
+
+  // Handle logout
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setIsAuthed(false);
+  };
+
   // Remove all controls and modals in view-only mode
   if (isViewOnly) {
     return (
       <div className="min-h-screen bg-black text-white p-4 md:p-8">
-        <Navbar />
+        <Navbar isAuthed={isAuthed} onLogout={handleLogout} />
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-5xl font-bold mb-2 text-orange-400 tracking-wide">
@@ -628,7 +650,7 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
 
   return (
     <div className="min-h-screen bg-black text-white p-4 md:p-8">
-      <Navbar />
+      <Navbar isAuthed={isAuthed} onLogout={handleLogout} />
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-5xl font-bold mb-2 text-orange-400 tracking-wide">

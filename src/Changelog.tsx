@@ -3,6 +3,13 @@ import Navbar from "./Navbar";
 import Footer from "./Footer";
 
 const changelog = [
+    {
+    version: "v0.6",
+    changes: [
+      "Properly added authentication for management page",
+      "Enabled RLS and added policies"
+    ],
+  },
   {
     version: "v0.5",
     changes: [

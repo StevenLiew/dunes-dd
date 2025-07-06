@@ -25,6 +25,16 @@ export default function Navbar({
             Home
           </Link>
           <Link
+            to="/houses"
+            className={`text-lg font-bold tracking-wide transition-colors ${
+              location.pathname === "/houses"
+                ? "text-orange-400"
+                : "text-gray-200 hover:text-orange-300"
+            }`}
+          >
+            Houses
+          </Link>
+          <Link
             to="/manage"
             className={`text-lg font-bold tracking-wide transition-colors ${
               location.pathname === "/manage"

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { X, Plus, Settings, RotateCcw, Home } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import Navbar from "./Navbar";
-import Footer from "./Footer";
 
 interface DropdownOption {
   id: string;
@@ -473,9 +472,11 @@ function App({
       else setIsAuthed(false);
     });
     // Listen for auth changes
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthed(!!session);
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setIsAuthed(!!session);
+      }
+    );
     return () => {
       listener.subscription.unsubscribe();
     };
@@ -643,7 +644,6 @@ function App({
             </div>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -1157,7 +1157,6 @@ function App({
           </div>
         </div>
       )}
-      <Footer />
     </div>
   );
 }

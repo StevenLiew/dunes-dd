@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
 import Navbar from "./Navbar";
-import Footer from "./Footer";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -14,6 +13,8 @@ const changelog = [
     changes: [
       "Properly added authentication for management page",
       "Enabled RLS and added policies",
+      "Added house locations to database",
+      "Refractored Footer component",
     ],
   },
   {
@@ -112,7 +113,6 @@ export default function Changelog({
           </Link>
         </div>
       </div>
-      <Footer />
     </div>
   );
 }

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { X, Plus, Settings, RotateCcw, Home } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import Navbar from "./Navbar";
-import Footer from "./Footer";
 
 interface DropdownOption {
   id: string;
@@ -63,7 +62,15 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-function App({ viewOnly = false }: { viewOnly?: boolean }) {
+function App({
+  viewOnly = false,
+  isAuthed,
+  setIsAuthed,
+}: {
+  viewOnly?: boolean;
+  isAuthed: boolean;
+  setIsAuthed: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
   // House options from images
   const [houseOptions] = useState<HouseOption[]>(getHouseOptionsFromImages());
 
@@ -98,7 +105,6 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [newOptionLabel, setNewOptionLabel] = useState("");
   const [showHouseDropdown, setShowHouseDropdown] = useState(false);
-  const [selectedHouse, setSelectedHouse] = useState<string>("");
   const [isViewOnly] = useState(viewOnly);
   const [nextStormDate, setNextStormDate] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<string>("");
@@ -120,7 +126,6 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
     const cellId = `${row}-${col}`;
     setSelectedCell(cellId);
     setShowHouseDropdown(false);
-    setSelectedHouse("");
   };
 
   const handleOptionSelect = (
@@ -155,7 +160,6 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
   const handleHouseSelection = (cellId: string, houseId: string) => {
     handleOptionSelect(cellId, "house", houseId);
     setShowHouseDropdown(false);
-    setSelectedHouse("");
   };
 
   const addNewOption = () => {
@@ -311,13 +315,6 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
     return () => clearInterval(interval);
   }, [nextStormDate]);
 
-  const addNextStormDate = (dateString: string) => {
-    const newDate = new Date(dateString);
-    if (!isNaN(newDate.getTime())) {
-      setNextStormDate(newDate);
-    }
-  };
-
   const saveStormDate = async (date: Date) => {
     setIsSaving(true);
     setNextStormDate(date);
@@ -465,11 +462,34 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
     saveToSupabase();
   }, [gridData, dropdownOptions, nextStormDate, mapId, deletedCells]);
 
+  // Check Supabase session on mount to set isAuthed
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setIsAuthed(true);
+      else setIsAuthed(false);
+    });
+    // Listen for auth changes
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setIsAuthed(!!session);
+      }
+    );
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, [setIsAuthed]);
+
+  // Handle logout
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setIsAuthed(false);
+  };
+
   // Remove all controls and modals in view-only mode
   if (isViewOnly) {
     return (
       <div className="min-h-screen bg-black text-white p-4 md:p-8">
-        <Navbar />
+        <Navbar isAuthed={isAuthed} onLogout={handleLogout} />
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-5xl font-bold mb-2 text-orange-400 tracking-wide">
@@ -621,14 +641,13 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
             </div>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-black text-white p-4 md:p-8">
-      <Navbar />
+      <Navbar isAuthed={isAuthed} onLogout={handleLogout} />
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-5xl font-bold mb-2 text-orange-400 tracking-wide">
@@ -813,7 +832,6 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
                 onClick={() => {
                   setSelectedCell(null);
                   setShowHouseDropdown(false);
-                  setSelectedHouse("");
                 }}
                 className="text-gray-400 hover:text-white transition-colors p-1"
               >
@@ -929,7 +947,6 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
                 onClick={() => {
                   setSelectedCell(null);
                   setShowHouseDropdown(false);
-                  setSelectedHouse("");
                 }}
                 className="bg-orange-600 hover:bg-orange-700 px-6 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105"
               >
@@ -1135,7 +1152,6 @@ function App({ viewOnly = false }: { viewOnly?: boolean }) {
           </div>
         </div>
       )}
-      <Footer />
     </div>
   );
 }

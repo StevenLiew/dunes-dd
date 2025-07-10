@@ -1,8 +1,22 @@
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { createClient } from "@supabase/supabase-js";
 import Navbar from "./Navbar";
-import Footer from "./Footer";
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const changelog = [
+  {
+    version: "v0.6",
+    changes: [
+      "Properly added authentication for management page",
+      "Enabled RLS and added policies",
+      "Added house locations to database",
+      "Refractored Footer component",
+    ],
+  },
   {
     version: "v0.5",
     changes: [
@@ -37,10 +51,38 @@ const changelog = [
   },
 ];
 
-export default function Changelog() {
+export default function Changelog({
+  isAuthed,
+  setIsAuthed,
+}: {
+  isAuthed: boolean;
+  setIsAuthed: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
+  // Check Supabase session on mount to set isAuthed
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setIsAuthed(true);
+      else setIsAuthed(false);
+    });
+    // Listen for auth changes
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setIsAuthed(!!session);
+      }
+    );
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, [setIsAuthed]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setIsAuthed(false);
+  };
+
   return (
     <div className="min-h-screen bg-black text-white p-4 md:p-8">
-      <Navbar />
+      <Navbar isAuthed={isAuthed} onLogout={handleLogout} />
       <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl md:text-5xl font-bold mb-6 text-orange-400 text-center tracking-wide">
           Changelog
@@ -71,7 +113,6 @@ export default function Changelog() {
           </Link>
         </div>
       </div>
-      <Footer />
     </div>
   );
 }
